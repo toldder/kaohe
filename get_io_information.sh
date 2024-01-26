@@ -6,7 +6,7 @@ if [ $(id -u) -ne 0 ];then
 fi
 iostat
 #确保存在iostat命令
-if [ $? -e 127 ];then
+if [ $? == 127 ];then
   apt-get update
   apt-get install sysstat
 fi

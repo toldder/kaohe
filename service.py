@@ -4,6 +4,7 @@ import re
 import psutil
 from rich.table import Table
 from rich.console import Console
+import getpass
 
 
 def cpu_mem_use_rate():
@@ -20,9 +21,12 @@ def cpu_mem_use_rate():
 
 
 def get_io_delay() -> float:
-    tmp = subprocess.run(['sh', './get_io_information.sh'], capture_output=True, text=True)
-    if tmp.returncode != 0:
-        print("get_io_information脚本执行失败，请确保使用sudo权限")
+    command = "sudo -S ./get_io_information.sh"
+    tmp = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           universal_newlines=True)
+    _, stderr = tmp.communicate(input=getpass.getpass("请输入sudo密码：") + '\n')
+    if len(stderr) != 0:
+        print("get_io_information脚本执行失败", stderr)
         return -1.0  # -1.0表示脚本执行错误
     cmd = 'iostat -d -x 1 1 '   # -x 扩展模式，包括IO请求的响应时间。1 每隔1s显示， 1只显示一次统计信息
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -31,15 +35,14 @@ def get_io_delay() -> float:
         print(f"Error:{err}")
         return -1.0
     # 解析 iostat 输出结果，获取平均每秒读写延迟
-    pattern = re.compile(r'^\s*([hsv]d[a-z]+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)$')
+    pattern = re.compile(r'\d+\.\d{2}?')
     io_delay = 0.0
     count = 0  # 磁盘的块数
     for line in output.splitlines():  # 将所得到的结果按照行切分
-        match = pattern.match(line.decode())  # 将字节解码为字符串
-        if match is not None:
-            match.group(1)
-            read_delay = float(match.group(2))
-            write_delay = float(match.group(3))
+        match = pattern.findall(line.decode())  # 将字节解码为字符串
+        if len(match) != 0:
+            read_delay = float(match[4])
+            write_delay = float(match[9])
             avg_delay = (read_delay + write_delay) / 2.0
             io_delay += avg_delay
             count += 1
@@ -109,10 +112,12 @@ def net_info():
     console.print(table)
 
 
-def lamp(path):
-    result = subprocess.run(['sh',path], capture_output=True, text=True)
-    if result.returncode != 0:
-        print("lamp脚本执行失败")
+def lamp(command_str):
+    tmp = subprocess.Popen(command_str, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE, universal_newlines=True)
+    _, stderr = tmp.communicate(input=getpass.getpass("请输入sudo密码：") + '\n')
+    if stderr is not None:
+        print(stderr)
         return
 
 
@@ -130,7 +135,8 @@ if __name__ == '__main__':
                 net_info()
             case "4":
                 print("安装lamp环境...")
-                lamp("./lamp.sh")
+                command_str = "sudo -S ./lamp.sh"
+                lamp(command_str)
                 print("环境安装成功")
             case "5":
                 break
