@@ -17,17 +17,24 @@ def cpu_mem_use_rate():
     print("the use rate of cpu: " + str(cpu_use_rate) + "%")
     mem_use_rate = psutil.virtual_memory()  # 内存使用率
     print("the use rate of memory: "+str(mem_use_rate.percent)+"%")
-    print("memory used:  "+str(mem_use_rate.used)+"MB")
+    print(f"memory used:  {mem_use_rate.used/1024.0/1024.0:.2f}MB")
 
 
-def get_io_delay() -> float:
-    command = "sudo -S ./get_io_information.sh"
-    tmp = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+def get_io_delay(return_code) -> float:
+    if return_code == 1:
+        command = "sudo -S ./get_io_information.sh"
+        tmp = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            universal_newlines=True)
-    _, stderr = tmp.communicate(input=getpass.getpass("请输入sudo密码：") + '\n')
-    if len(stderr) != 0:
-        print("get_io_information脚本执行失败", stderr)
-        return -1.0  # -1.0表示脚本执行错误
+        _, stderr = tmp.communicate(input=getpass.getpass("请输入sudo密码：") + '\n')
+        if len(stderr) != 0:
+            print("get_io_information脚本执行失败", stderr)
+            return -1.0  # -1.0表示脚本执行错误
+    else:
+        result = subprocess.run(['bash', './get_io_information.sh'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print("执行lamp脚本失败", result.stderr)
+            return -1.0
+
     cmd = 'iostat -d -x 1 1 '   # -x 扩展模式，包括IO请求的响应时间。1 每隔1s显示， 1只显示一次统计信息
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     output, err = p.communicate()
@@ -54,7 +61,7 @@ def get_io_delay() -> float:
     return avg_io_delay
 
 
-def io_system_info():
+def io_system_info(return_code):
     # tuple,分别是read_count,write_count,read_bytes,write_bytes,read_time,write_time,默认返回所有磁盘总情况
     init_io = psutil.disk_io_counters()
     time.sleep(1)  # 等待1s，计算每秒读写次数
@@ -62,7 +69,7 @@ def io_system_info():
     read_write_count_per_sec = (current.read_count - init_io.read_count) + (current.write_count - init_io.write_count)
 
     # 计算IO延迟
-    io_delay = get_io_delay()
+    io_delay = get_io_delay(return_code)
     if io_delay == -1.0:
         return
     if io_delay == -2.0:
@@ -112,16 +119,25 @@ def net_info():
     console.print(table)
 
 
-def lamp(command_str):
-    tmp = subprocess.Popen(command_str, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+def lamp(sudo_code):
+    if sudo_code ==1:
+        command_str = "sudo -S ./lamp.sh"
+        tmp = subprocess.Popen(command_str, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, universal_newlines=True)
-    _, stderr = tmp.communicate(input=getpass.getpass("请输入sudo密码：") + '\n')
-    if stderr is not None:
-        print(stderr)
-        return
+        _, stderr = tmp.communicate(input=getpass.getpass("请输入sudo密码：") + '\n')
+        if stderr is not None:
+            print(stderr)
+            return
+    else:
+        result = subprocess.run(['bash', './lamp.sh'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print("执行lamp脚本失败",result.stderr)
+            return
 
 
 if __name__ == '__main__':
+    # 查看运行程序的权限
+    return_code = subprocess.call(['bash', './sudo.sh'])
     print("----欢迎来到宝塔命令行面板--------")
     print(" 1 查看cpu和内存使用率   2 查看I/O情况  3.查看网络流量情况 4 一键安装lamp环境 5 退出宝塔面板")
     while True:
@@ -130,13 +146,12 @@ if __name__ == '__main__':
             case "1":
                 cpu_mem_use_rate()
             case "2":
-                io_system_info()
+                io_system_info(return_code)
             case "3":
                 net_info()
             case "4":
                 print("安装lamp环境...")
-                command_str = "sudo -S ./lamp.sh"
-                lamp(command_str)
+                lamp(return_code)
                 print("环境安装成功")
             case "5":
                 break
