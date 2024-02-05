@@ -2,13 +2,14 @@
 
 #安装apche,mariadb和php
 apt-get update
+apt-get -y install systemctl
 apt-get -y install apache2
 systemctl start apache2
 if [ $? -ne 0 ];then
        echo "安装apache启动失败"
 	exit 1
 fi
-iptables -A INPUT -p tcp --dport 80 -j ACCEPT # 开放apache的端口
+# iptables -A INPUT -p tcp --dport 80 -j ACCEPT # 开放apache的端口
 apt -y install mariadb-server
 systemctl start mariadb
 if [ $? -ne 0 ];then

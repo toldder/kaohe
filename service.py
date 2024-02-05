@@ -120,7 +120,7 @@ def net_info():
 
 
 def lamp(sudo_code):
-    if sudo_code ==1:
+    if sudo_code == 1:
         command_str = "sudo -S ./lamp.sh"
         tmp = subprocess.Popen(command_str, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, universal_newlines=True)
@@ -131,7 +131,7 @@ def lamp(sudo_code):
     else:
         result = subprocess.run(['bash', './lamp.sh'], capture_output=True, text=True)
         if result.returncode != 0:
-            print("执行lamp脚本失败",result.stderr)
+            print("执行lamp脚本失败", result.stderr)
             return
 
 
