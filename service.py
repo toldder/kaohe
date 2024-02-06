@@ -119,7 +119,7 @@ def net_info():
     console.print(table)
 
 
-def lamp(sudo_code):
+def lamp(sudo_code) -> bool:
     if sudo_code == 1:
         command_str = "sudo -S ./lamp.sh"
         tmp = subprocess.Popen(command_str, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -127,12 +127,14 @@ def lamp(sudo_code):
         _, stderr = tmp.communicate(input=getpass.getpass("请输入sudo密码：") + '\n')
         if stderr is not None:
             print(stderr)
-            return
+            return False
+        return True
     else:
         result = subprocess.run(['bash', './lamp.sh'], capture_output=True, text=True)
         if result.returncode != 0:
             print("执行lamp脚本失败", result.stderr)
-            return
+            return False
+        return True
 
 
 if __name__ == '__main__':
@@ -151,8 +153,10 @@ if __name__ == '__main__':
                 net_info()
             case "4":
                 print("安装lamp环境...")
-                lamp(return_code)
-                print("环境安装成功")
+                result = lamp(return_code)
+                if result:
+                    print("环境安装成功")
+
             case "5":
                 break
             case _:

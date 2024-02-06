@@ -12,15 +12,17 @@
 
 # level2
 
-pull该镜像的命令
+pull该镜像并运行容器
 
 ```
-docker pull witch6/winter_test:3.10
+docker pull witch6/winter_test:3.11
+docker run -p 8080:80 -d witch6/winter_test:3.11  /bin/bash -c "while true; do sleep 1;done"
+docker exec -it <容器id> /bin/bash
 ```
 
 **关于docker中容器中运行该程序的一些问题**
-
-容器中输出io的情况耗费时间有时候特别长，在容器中安装lamp环境是启动mariadb服务器会失败
+在容器中由于没有安装iostat命令，所以第一次查看io信息时，会等待4分钟左右的时间
+在容器中安装lamp环境是启动mariadb服务器会失败,导致Lamp环境安装不成功
 
 # level 3
 
